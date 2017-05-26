@@ -1,0 +1,66 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../../bower_components/app-route/app-location.html">
+<link rel="import" href="../../bower_components/app-route/app-route.html">
+<link rel="import" href="../login-page/login-page.html">
+<link rel="import" href="../chat-page/chat-page.html">
+<dom-module id="main-app">
+  <template>
+	<paper-toolbar>
+		<div class="title">Yo,Man!</div>		
+	</paper-toolbar>
+	<app-location route="{{route}}"></app-location>
+    <app-route
+        route="{{route}}"
+        pattern="/:page"
+        data="{{routeData}}"
+        tail="{{subroute}}"></app-route>
+
+	<!--<iron-pages id="pages"
+				role="main"
+			    selected="[[routeData.page]]"
+				selected-attribute="active"
+				attr-for-selected="id"
+				fallback-selection="show">
+					<login-page id = "login-page"></login-page>
+					<chat-page id = "chat-page" login = "{{login}}"></chat-page>
+
+	</iron-pages>-->
+
+	  <template is="dom-if" if="{{isLogin(routeData.page)}}">
+		  <login-page></login-page>
+	  </template>
+	  <template is="dom-if" if="{{isChat(routeData.page)}}">
+		  <chat-page id = "chat-page" login = "{{login}}"></chat-page>
+	  </template>
+  </template>
+
+  <script>
+    Polymer({
+		is: 'main-app',
+		listeners:{
+			'onLogin':'onLogin'
+		},
+		properties:{
+			login:{
+				type:String,
+				value:"",
+			}
+		},
+		attached(){
+			this.set('routeData.page',"login-page");
+		},
+		onLogin(e){
+			this.set("login",e.detail.name);
+			this.set('routeData.page','chat-page');
+		},
+		isLogin(str){
+			return str=="login-page";
+		},
+		isChat(str){
+			return str=="chat-page";
+		}
+    });
+  </script>
+</dom-module>

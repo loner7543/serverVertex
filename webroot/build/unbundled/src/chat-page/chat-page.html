@@ -1,0 +1,85 @@
+<html><head><link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+
+</head><body><dom-module id="chat-page">
+	<template>
+        <template is="dom-repeat" items="{{messages}}">
+            <p>
+                <span>{{getTimeString(item)}}</span>|
+                <span style="font-weight:bold">{{item.name}}</span>
+                :Yo!!!
+            </p>
+        </template>
+		<paper-button id="yo" class="indigo">Yo!</paper-button>
+	</template>
+	<script>
+		let ws;
+		let last = +(new Date());
+		Polymer({
+			is:"chat-page",
+			properties:{
+				login:{
+					type:String,
+					value:"User"+(+new Date())
+				},
+			},
+			ready(){
+				this.messages=[];
+				reopen();
+				function reopen(){
+					ws = new WebSocket("ws://"+window.location.host+"/ws");
+				}
+				ws.onerror=reopen;
+				ws.onclose=reopen;
+				let self = this;
+				ws.onmessage = m=>{
+					let data = JSON.parse(m.data);
+					self.messages.unshift(data);
+					let messages = self.messages;
+					self.set("messages",[]);
+					self.set("messages",messages);
+				}
+				this.loadMore();
+
+			},
+			loadMore(){
+				let xhr = new XMLHttpRequest();
+				let self =this;
+				xhr.onload = function() {
+					if (this.status != 200) {
+					// ���������� ������
+					console.log( '������: ' + (this.status ? this.statusText : '������ �� ������') );
+					return;
+				  }
+
+				  let msgs = JSON.parse(this.responseText);
+				  self.messages.unshift(...(msgs.reverse()));
+				  let messages = self.messages;
+				  self.set("messages",[]);
+				  self.set("messages",messages);
+				  if(msgs.length){
+				  	last = msgs[msgs.length-1].stamp;
+				  }
+				};
+				xhr.open("GET","http://"+window.location.host+"/api/msg?from="+last);
+				xhr.send(null);
+
+			},
+			listeners:{
+				'yo.tap':'sendYo'
+			},
+			sendYo(){
+				ws.send(JSON.stringify({
+					name:this.login,
+					stamp:+(new Date())				
+				}));
+			},
+			getTimeString(item){
+				return (new Date(item.stamp)).toLocaleDateString();
+			},
+		
+		
+		});
+	</script>
+</dom-module></body></html>

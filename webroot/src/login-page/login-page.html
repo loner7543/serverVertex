@@ -1,0 +1,39 @@
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+
+<dom-module id="login-page">
+	<template>
+		<style>
+			.container {
+				display:flex;
+				flex-flow:column;
+				justify-content:space-around;
+				align-content:center;
+			}
+		</style>
+				
+		<div class="container">
+			<paper-input value={{login}} label="Name"></paper-input>
+			<paper-button id="apply">Time to YO!</paper-button>		
+		</div>
+	</template>
+	<script>
+		Polymer({
+			is:"login-page",
+			properties:{
+				login:{
+					type:String,
+					value:""
+				}
+			},
+			listeners:{
+				'apply.tap':'onTap'
+			},
+			onTap(){
+				this.fire("onLogin",{name:this.login});
+			}
+		
+		});
+	</script>
+</dom-module>
