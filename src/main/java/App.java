@@ -2,16 +2,16 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.impl.ConcurrentHashSet;
+import src.User;
 
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 
 public class App 
 {
-    private static final int MSG_BLOCK_SIZE=50;
-    private static final String  WS_URL_TAIL = "/ws";//http
-    private static final String ADD_MES_TAIL = "/api/msg";
+    private static int MSG_BLOCK_SIZE=50;
+    private static final String  WS_URL_TAIL = "/ws";//http - регистрация пользоваеля и открытие соединения
+    private static final String ADD_MES_TAIL = "/api/msg";//получение сообщений
     private static Object key=new Object();
     private static Set<ServerWebSocket> allUsrs = new ConcurrentHashSet<>();
      private static TreeMap<Long,String> allMessages = new TreeMap<>((o1, o2)->{
@@ -49,8 +49,9 @@ public class App
                     String resp = null;
                     try {
                         String messageBody = request.getParam("from");
+                        long loadCount=Long.parseLong(request.getParam("count"));
                         Long value = Long.parseLong(messageBody);
-                        resp = getMessages(value);
+                        resp = getMessages(value,loadCount);
                     } catch (Exception e) {
                         resp = "[]";
                     }
@@ -70,21 +71,35 @@ public class App
 
     }
 
-    public static String getMessages(long end){
+    public static String getMessages(long end,long loadCount){// в параметрах - дата окончания
         synchronized (key){// зверей мб много
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append("[");
-            int count=0;
-            Set<Long> keys = allMessages.subMap(end,false,0L,false).keySet();
+            ArrayList<User> messages = new ArrayList<>();
+            if (allMessages.size()!=0){
+                for (long key :allMessages.keySet()){
+                    String mes = allMessages.get(key);
+                    messages.add(new User(key,mes));
 
-            for(Long key: keys){
-                String msg = allMessages.get(key);
-                stringBuilder.append(msg);
-                count++;
-                if(count==MSG_BLOCK_SIZE || count == keys.size()){
-                    break;
                 }
-                stringBuilder.append(",");
+                Collections.reverse(messages);
+                if (loadCount>messages.size()){// запросили больше чем есть на сервере в данн момент
+                    for (int i = 0;i<messages.size();i++){
+                        stringBuilder.append(messages.get(i).getMes());
+                        if (i!=messages.size()-1){
+                            stringBuilder.append(",");
+                        }
+                    }
+                }
+                else {
+                    for (int i=0;i<loadCount;i++){
+                        User elem = messages.get(i);//allMessages.get(key);
+                        stringBuilder.append(elem.getMes());
+                        if (i!=loadCount-1){
+                            stringBuilder.append(",");
+                        }
+                    }
+                }
             }
             stringBuilder.append("]");
             return stringBuilder.toString();
