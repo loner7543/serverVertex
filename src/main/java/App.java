@@ -5,6 +5,7 @@ import io.vertx.core.impl.ConcurrentHashSet;
 import src.User;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class App 
@@ -13,10 +14,9 @@ public class App
     private static final String  WS_URL_TAIL = "/ws";//http - регистрация пользоваеля и открытие соединения
     private static final String ADD_MES_TAIL = "/api/msg";//получение сообщений
     private static Object key=new Object();
+    private static boolean isGet = true;
     private static Set<ServerWebSocket> allUsrs = new ConcurrentHashSet<>();
-     private static TreeMap<Long,String> allMessages = new TreeMap<>((o1, o2)->{
-        return Long.compare(o2,o1);
-    });
+     private static ArrayList<String> allMessages = new ArrayList<>();
 
 
     public static void main( String[] args ) {
@@ -74,34 +74,44 @@ public class App
     public static String getMessages(long end,long loadCount){// в параметрах - дата окончания
         synchronized (key){// зверей мб много
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("[");
-            ArrayList<User> messages = new ArrayList<>();
+            //stringBuilder.append("[");
             if (allMessages.size()!=0){
-                for (long key :allMessages.keySet()){
-                    String mes = allMessages.get(key);
-                    messages.add(new User(key,mes));
+                System.out.println("Текущие сообщения");
+               printList(allMessages);
+//               Collections.reverse(allMessages);
+//                System.out.println("После реверса");
+//                printList(allMessages);
 
-                }
-                Collections.reverse(messages);
-                if (loadCount>messages.size()){// запросили больше чем есть на сервере в данн момент
-                    for (int i = 0;i<messages.size();i++){
-                        stringBuilder.append(messages.get(i).getMes());
-                        if (i!=messages.size()-1){
-                            stringBuilder.append(",");
+//                if (isGet){
+//                    Collections.reverse(allMessages);
+//                    isGet = false;
+//                    System.out.println("После реверса");
+//                    printList(allMessages);
+//                }
+
+                if (loadCount>allMessages.size()){// запросили больше чем есть на сервере в данн момент
+                    for (int i = 0;i<allMessages.size();i++){
+                        stringBuilder.append(allMessages.get(i));
+                        if (i!=allMessages.size()-1){
+                            stringBuilder.append(";");
                         }
                     }
                 }
                 else {
+                    List<String> toClient = allMessages.stream().skip(allMessages.size()-loadCount).collect(Collectors.toList());
+                    Collections.reverse(toClient);
+                    System.out.println("Ушло клиенту");
                     for (int i=0;i<loadCount;i++){
-                        User elem = messages.get(i);//allMessages.get(key);
-                        stringBuilder.append(elem.getMes());
+                        String elem = toClient.get(i);//allMessages.get(key);
+                        printElem(elem);
+                        stringBuilder.append(elem);
                         if (i!=loadCount-1){
-                            stringBuilder.append(",");
+                            stringBuilder.append(";");
                         }
                     }
                 }
             }
-            stringBuilder.append("]");
+            //stringBuilder.append("]");
             return stringBuilder.toString();
         }
 
@@ -109,8 +119,20 @@ public class App
     }
     public static void putMessage(String message){
         synchronized(key){
-            allMessages.put(System.currentTimeMillis(),message);
+            isGet=true;
+            long date = System.currentTimeMillis();
+            allMessages.add(message);
+            System.out.println("Добавлено сообщение с датой"+new Date(date).toString());
         }
+    }
+    public static void printList(ArrayList<String> allMessages){
+        for (String user:allMessages){
+            System.out.println(user);
+        }
+    }
+
+    public static void printElem(String user){
+        System.out.println(user);
     }
 
 }
